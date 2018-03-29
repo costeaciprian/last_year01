@@ -2,26 +2,35 @@ package realcolocviulast.eim.systems.cs.pub.ro.colocviu01last;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.sql.Timestamp;
+
 public class Colocviu01MainActivity extends Activity {
 
-    private TextView out_text;
+    private TextView out_text, bounded_service_text;
     private Button bottom_left, bottom_right, top_left, top_right, navigate, center;
     private int num_Clicks = 0;
     private ButtonClickListener buttonClickListener = new ButtonClickListener();
+
     private final int REQUEST_CODE = 1;
     private boolean isServiceStarted = false;
+    private boolean isBoundedServiceConnected = false;
     private IntentFilter intentFilter = null;
     private MessageBroadcastReceiver messageBroadcastReceiver = new MessageBroadcastReceiver();
+    private MyBoundedService myBoundedService = null;
+    private Button message_from_bounded_service = null;
 
     private class MessageBroadcastReceiver extends BroadcastReceiver {
         @Override
@@ -63,6 +72,12 @@ public class Colocviu01MainActivity extends Activity {
                     intent.putExtra("num_clicks", num_Clicks);
                     startActivityForResult(intent, REQUEST_CODE);
                     break;
+                case R.id.get_message_button:
+                    if ( myBoundedService != null && isBoundedServiceConnected) {
+                        bounded_service_text.setText("[" + new Timestamp(System.currentTimeMillis()) + "]" +
+                                myBoundedService.getMessage() + "\n" + bounded_service_text.getText().toString());
+                    }
+                    break;
             }
 
             verifyStartService();
@@ -90,6 +105,8 @@ public class Colocviu01MainActivity extends Activity {
         bottom_right = findViewById(R.id.bottom_right_button);
         navigate = findViewById(R.id.navigate_button);
         center = findViewById(R.id.center_button);
+        message_from_bounded_service = findViewById(R.id.get_message_button);
+        bounded_service_text = findViewById(R.id.bounded_service_text);
 
         center.setOnClickListener(buttonClickListener);
         navigate.setOnClickListener(buttonClickListener);
@@ -97,6 +114,7 @@ public class Colocviu01MainActivity extends Activity {
         top_left.setOnClickListener(buttonClickListener);
         bottom_right.setOnClickListener(buttonClickListener);
         bottom_left.setOnClickListener(buttonClickListener);
+        message_from_bounded_service.setOnClickListener(buttonClickListener);
 
         if(savedInstanceState != null) {
             out_text.setText(savedInstanceState.getString("output_text"));
@@ -131,11 +149,18 @@ public class Colocviu01MainActivity extends Activity {
     @Override
     protected void onStop() {
         super.onStop();
+        if ( !isBoundedServiceConnected) {
+           isBoundedServiceConnected = false;
+           unbindService(serviceConnection);
+        }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+
+        Intent intent = new Intent(this, MyBoundedService.class);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
@@ -172,4 +197,21 @@ public class Colocviu01MainActivity extends Activity {
         Toast.makeText(getApplicationContext(), "Activity returned with result: " + resultCode,
                 Toast.LENGTH_LONG).show();
     }
+
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder service) {
+            isBoundedServiceConnected = true;
+            Log.d("ServiceConnected", "Called");
+            MyBoundedService.MyBoundedServiceBinder binder = (MyBoundedService.MyBoundedServiceBinder)service;
+            myBoundedService = binder.getService();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            myBoundedService = null;
+            Log.d("ServiceDisconnected", "Called");
+            isBoundedServiceConnected = false;
+        }
+    };
 }

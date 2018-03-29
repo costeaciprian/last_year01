@@ -88,6 +88,14 @@
                 android:layout_toEndOf="@+id/top_left_button"
                 android:layout_toRightOf="@+id/top_left_button"
                 android:text="center" />
+
+            <Button
+                android:id="@+id/get_message_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/bottom_right_button"
+                android:layout_centerHorizontal="true"
+                android:text="bounded service message" />
         </RelativeLayout>
 
         <ScrollView
@@ -98,6 +106,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical" >
+
+                <TextView
+                    android:id="@+id/bounded_service_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
 
                 <TextView
                     android:id="@+id/output_text"
